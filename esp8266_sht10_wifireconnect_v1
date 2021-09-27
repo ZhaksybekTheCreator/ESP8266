@@ -1,0 +1,152 @@
+#include <ESP8266WiFi.h>
+#include <SHT1x.h>
+
+//WiFi
+  const char* ssid = "TP-Link_9FF4";
+  const char* password = "58625484";
+//ip
+  const char* host = "192.168.0.177";
+
+  unsigned long previousMillis = 0;
+  unsigned long interval = 30000;
+
+#define dataPin1  D14
+#define clockPin1 D15
+#define dataPin2  D12
+#define clockPin2 D13
+#define dataPin3  D3
+#define clockPin3 D4
+SHT1x sht1x1(dataPin1, clockPin1);
+SHT1x sht1x2(dataPin2, clockPin2);
+SHT1x sht1x3(dataPin3, clockPin3);
+
+void initWiFi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi ..");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print('.');
+    delay(1000);
+  }
+  Serial.println(WiFi.localIP());
+  //The ESP8266 tries to reconnect automatically when the connection is lost
+  WiFi.setAutoReconnect(true);
+  WiFi.persistent(true);
+}
+
+void get_s(int a, int b, int c, int d, int e, int f)
+{
+  WiFiClient client;
+  if (client.connect(host, 80))
+  {
+    Serial.println("GET start.");
+    //api
+    client.println("GET /" + String(a) + ", " +  String(b) + ", " +  String(c) + ", " +  String(d) + ", " +  String(e) + ", " +  String(f) );
+
+
+    Serial.println("Get ok");
+    Serial.println(a);
+    
+    //IP
+    client.println("Host: 192.168.0.177");
+    client.println("User-Agent: arduino-ethernet");
+    client.println("Connection: close");
+    client.println();
+    Serial.println("GET end.");
+    client.stop();
+    Serial.println("\n[Disconnected]\n\n");
+  }
+  else
+  {
+    Serial.println("connection failed!]\n\n");
+    client.stop();
+  }
+}
+
+void setup()
+{
+  Serial.begin(9600);
+  delay(100);
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+  }
+    Serial.println("");
+    Serial.println("WiFi connected");  
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+    initWiFi();
+    Serial.print("RSSI: ");
+    Serial.println(WiFi.RSSI());
+}
+
+void loop() 
+{
+  //print the Wi-Fi status every 30 seconds
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >=interval){
+    switch (WiFi.status()){
+      case WL_NO_SSID_AVAIL:
+        Serial.println("Configured SSID cannot be reached");
+        break;
+      case WL_CONNECTED:
+        Serial.println("Connection successfully established");
+        break;
+      case WL_CONNECT_FAILED:
+        Serial.println("Connection failed");
+        break;
+    }
+    Serial.printf("Connection status: %d\n", WiFi.status());
+    Serial.print("RRSI: ");
+    Serial.println(WiFi.RSSI());
+    previousMillis = currentMillis;
+  }
+  float temp_c1;
+  float humidity1;
+  
+  float temp_c2;
+  float humidity2;
+
+  float temp_c3;
+  float humidity3;
+ 
+  // Read values from the sensor
+  temp_c1 = sht1x1.readTemperatureC();
+  humidity1 = sht1x1.readHumidity();
+
+  temp_c2 = sht1x2.readTemperatureC();
+  humidity2 = sht1x2.readHumidity();
+
+  temp_c3 = sht1x3.readTemperatureC();
+  humidity3 = sht1x3.readHumidity();
+ 
+  // Print the values to the serial port
+  Serial.print("Temperature1: ");
+  Serial.print(temp_c1, DEC);
+  Serial.println(" C");
+  Serial.print("Humidity1: ");
+  Serial.print(humidity1);
+  Serial.println("%");
+
+  Serial.print("Temperature2: ");
+  Serial.print(temp_c2, DEC);
+  Serial.println(" C");
+  Serial.print("Humidity2: ");
+  Serial.print(humidity2);
+  Serial.println("%");
+
+  Serial.print("Temperature3: ");
+  Serial.print(temp_c3, DEC);
+  Serial.println(" C");
+  Serial.print("Humidity3: ");
+  Serial.print(humidity3);
+  Serial.println("%");
+  get_s(temp_c1, humidity1, temp_c2, humidity2, temp_c3, humidity3);     
+  delay(2000);
+}
